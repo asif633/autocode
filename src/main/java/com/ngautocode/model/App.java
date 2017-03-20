@@ -2,9 +2,15 @@ package com.ngautocode.model;
 
 import java.util.List;
 
+import org.hibernate.validator.constraints.NotBlank;
+import org.hibernate.validator.constraints.NotEmpty;
+
+
 public class App {
 	
+	@NotBlank(message = "Id must not be blank!")
     private String id;
+	@NotBlank(message = "App Name must not be blank!")
     private String appName;
     private String type;
     private String cssFramework;
@@ -13,6 +19,7 @@ public class App {
     private String primaryhue;
     private String secondaryColor;
     private String secondaryhue;
+    @NotEmpty(message = "There must be some tables!")
     private List<Table> tables;
     
 	public String getId() {

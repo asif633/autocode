@@ -1,13 +1,17 @@
 package com.ngautocode.model;
 
+import org.hibernate.validator.constraints.NotBlank;
+
 public class Field {
 	
     private String id;
+    @NotBlank(message="Field Name must not be blank!")
     private String fieldName;
     private String type;
     private String min;
     private String max;
     private String pattern;
+    @NotBlank(message="Datatype must not be blank!")
     private String datatype;
     
 	public String getId() {

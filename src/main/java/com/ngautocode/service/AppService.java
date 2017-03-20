@@ -4,89 +4,148 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.ngautocode.model.App;
+import com.ngautocode.model.Table;
+import com.ngautocode.model.Variables;
 
 @Service
 public class AppService {
 	
 	@Autowired FileReadWrite fileReadWrite;
+	@Autowired CounterService counterServ;
+	@Autowired FolderZipper folderZipper;
 	
-	public void setAllModelValues(App app){
-		System.out.println("App creation started");
+	public void setAllModelValues(App app){		
+		System.out.println("App creation started"+ counterServ.getIndex());
 		// Seed folder copy and rename
-		Path source = Paths.get("A:/dev/autocode/covalent-seed");
-		Path target = Paths.get("A:/dev/generatedApps/"+ app.getAppName());
-		if(Files.exists(target)){
-			fileReadWrite.deleteDirectoryRecursively(target);
-			target = Paths.get("A:/dev/generatedApps/"+ app.getAppName());
-		}
-		fileReadWrite.folderCopyAndRename(source, target);
+		String appPath = copyDirectory(app, counterServ.getIndex());
 		// Change theme file
-		Path themeFile = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/theme.scss");
-		fileReadWrite.replaceWordInAFile(themeFile, "teal", app.getPrimaryColor());
-		fileReadWrite.replaceWordInAFile(themeFile, "700", app.getPrimaryhue());
-		fileReadWrite.replaceWordInAFile(themeFile, "deep-orange", app.getSecondaryColor());
-		fileReadWrite.replaceWordInAFile(themeFile, "800", app.getSecondaryhue());
+		getThemeCss(app, appPath);
 		// Components folders
-		Path comFormSrcPath = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/components/demo");
-		Path comListSrcPath = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/components/demos");
-		Path modelSrcPath = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/shared/demo");
+		String srcComFormPath = appPath + Variables.componentSrcFormPath;
+		String srcComListPath = appPath + Variables.componentSrcListPath;
+		String srcModelPath = appPath + Variables.modelSrcPath;
 		// Create components folder
 		app.getTables().stream().forEach(table -> {
 			// Copy folders for each table
-			Path comFormTarPath = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/components/"+ table.getNameLowercase());
-			Path comListTarPath = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/components/"+ table.getNameLowercase() + "s");
-			fileReadWrite.folderCopyAndRename(comFormSrcPath, comFormTarPath);
-			fileReadWrite.folderCopyAndRename(comListSrcPath, comListTarPath);
-			Path modelTarPath = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/shared/"+ table.getNameLowercase());
-			fileReadWrite.folderCopyAndRename(modelSrcPath, modelTarPath);
-			// Change component files
-			// First rename
-			String comts = "A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/components/"+ table.getNameLowercase();
-			new File(comts+ "/demo.component.ts").renameTo(new File(comts+ "/"+ table.getNameLowercase() + ".component.ts"));
-			new File(comts+ "/demo.component.html").renameTo(new File(comts+ "/"+table.getNameLowercase() + ".component.html"));
-			new File(comts+ "/demo.component.scss").renameTo(new File(comts+ "/"+table.getNameLowercase() + ".component.scss"));
-			String comsts = "A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/components/"+ table.getNameLowercase()+ "s";
-			new File(comsts+ "/demos.component.ts").renameTo(new File(comsts+ "/"+table.getNameLowercase() + "s.component.ts"));
-			new File(comsts+ "/demos.component.html").renameTo(new File(comsts+ "/"+table.getNameLowercase() + "s.component.html"));
-			new File(comsts+ "/demos.component.scss").renameTo(new File(comsts+ "/"+table.getNameLowercase() + "s.component.scss"));
-			String modelts = "A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/shared/"+ table.getNameLowercase();
-			new File(modelts+ "/demo.model.ts").renameTo(new File(modelts+ "/"+table.getNameLowercase() + ".model.ts"));
-			new File(modelts+ "/demo.service.ts").renameTo(new File(modelts+ "/"+table.getNameLowercase() + ".service.ts"));
-			// Change file contents
-			Path formtsPath = Paths.get(comts + "/"+ table.getNameLowercase() + ".component.ts");
-			Path formhtmlPath = Paths.get(comts + "/"+ table.getNameLowercase() + ".component.html");
-			fileReadWrite.replaceWordInAFile(formtsPath, "Demo", table.getName());
-			fileReadWrite.replaceWordInAFile(formtsPath, "demo", table.getNameLowercase());
-			fileReadWrite.replaceWordInAFile(formhtmlPath, "Demo", table.getName());
-			fileReadWrite.replaceWordInAFile(formhtmlPath, "demo", table.getNameLowercase());
-			Path listtsPath = Paths.get(comsts + "/"+ table.getNameLowercase() + "s.component.ts");
-			Path listhtmlPath = Paths.get(comsts + "/"+ table.getNameLowercase() + "s.component.html");
-			fileReadWrite.replaceWordInAFile(listtsPath, "Demo", table.getName());
-			fileReadWrite.replaceWordInAFile(listtsPath, "demo", table.getNameLowercase());
-			fileReadWrite.replaceWordInAFile(listhtmlPath, "Demo", table.getName());
-			fileReadWrite.replaceWordInAFile(listhtmlPath, "demo", table.getNameLowercase());
-			Path modeltsPath = Paths.get(modelts + "/"+ table.getNameLowercase() + ".model.ts");
-			Path servicetsPath = Paths.get(modelts + "/"+ table.getNameLowercase() + ".service.ts");
-			fileReadWrite.replaceWordInAFile(modeltsPath, "Demo", table.getName());
-			fileReadWrite.replaceWordInAFile(modeltsPath, "demo", table.getNameLowercase());
-			fileReadWrite.replaceWordInAFile(servicetsPath, "Demo", table.getName());
-			fileReadWrite.replaceWordInAFile(servicetsPath, "demo", table.getNameLowercase());
+			String tarComFormPath = appPath + Variables.compPath + table.getNameLowercase();
+			String tarComListPath = appPath + Variables.compPath + table.getNameLowercase() + "s";
+			String tarModelPath = appPath + Variables.modelPath + table.getNameLowercase();
+			fileReadWrite.directoryCopyAndRename(srcComFormPath, tarComFormPath);
+			fileReadWrite.directoryCopyAndRename(srcComListPath, tarComListPath);
+			fileReadWrite.directoryCopyAndRename(srcModelPath, tarModelPath);
 			// Change route file
-			Path routeFile = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/app.routes.ts");
-			//fileReadWrite.addLinesAfterSearchedLine(routeFile, "{path: 'demos', component: DemosComponent},", "{path: '" +table.getNameLowercase()+ "s', component: "+table.getName()+"sComponent},");
-			Path mainFile = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/main/main.component.ts");
-			//fileReadWrite.addLinesAfterSearchedLine(mainFile, "{ title: 'Demos', route: '/demos', icon: 'dashboard'}," ,"{ title: '"+ table.getName()+ "s', route: '/"+ table.getNameLowercase() +"', icon: 'dashboard'},");
-			// Add Component to app.module.ts
-			Path appFile = Paths.get("A:/dev/generatedApps/"+ app.getAppName()+ "/src/app/app.module.ts");
+			changeRouteFile(appPath, table);			
+			// Add Component and service to app.module.ts
+			changeModuleFile(appPath, table);
+			// Change component files
+			// First rename		
+			String pathOfTargetComp = tarComFormPath+ "/"+ table.getNameLowercase();
+			String pathOfTargetCompTs = pathOfTargetComp + Variables.comFile;
+			new File(tarComFormPath+ Variables.comTs).renameTo(new File(pathOfTargetCompTs));
+			String pathOfTargetCompHtml= pathOfTargetComp + Variables.htmlFile;
+			new File(tarComFormPath+ Variables.comHtml).renameTo(new File(pathOfTargetCompHtml));
+			String pathOfTargetCompScss= pathOfTargetComp + Variables.scssFile;
+			new File(tarComFormPath+ Variables.comScss).renameTo(new File(pathOfTargetCompScss));
+			String pathOfTargetListComp = tarComListPath+ "/"+ table.getNameLowercase();
+			String pathOfTargetListCompTs = pathOfTargetListComp + Variables.comListFile;
+			new File(tarComListPath+ Variables.listTs).renameTo(new File(pathOfTargetListCompTs));
+			String pathOfTargetListCompHtml = pathOfTargetListComp + Variables.listHtmlFile;
+			new File(tarComListPath+ Variables.listHtml).renameTo(new File(pathOfTargetListCompHtml));
+			String pathOfTargetListCompScss = pathOfTargetListComp + Variables.listScssFile;
+			new File(tarComListPath+ Variables.listScss).renameTo(new File(pathOfTargetListCompScss));
+			String pathOfTargetModel = tarModelPath+ "/"+ table.getNameLowercase();
+			String pathOfTargetModelTs = pathOfTargetModel + Variables.modelFile;
+			new File(tarModelPath+ Variables.modelTs).renameTo(new File(pathOfTargetModelTs));
+			String pathOfTargetServiceTs = pathOfTargetModel + Variables.serviceFile;
+			new File(tarModelPath+ Variables.modelServiceTs).renameTo(new File(pathOfTargetServiceTs));
+			// Change file contents
+			//System.out.println("cc "+ pathOfTargetCompTs + " "+ Variables.modelName+ " "+ table.getName());
+			fileReadWrite.replaceWordInAFile(pathOfTargetCompTs, Variables.modelName, table.getName());
+			fileReadWrite.replaceWordInAFile(pathOfTargetCompTs, Variables.modelNameLowercase, table.getNameLowercase());
+			fileReadWrite.replaceWordInAFile(pathOfTargetCompHtml, Variables.modelName, table.getName());
+			fileReadWrite.replaceWordInAFile(pathOfTargetCompHtml, Variables.modelNameLowercase, table.getNameLowercase());
+			fileReadWrite.replaceWordInAFile(pathOfTargetListCompTs, Variables.modelName, table.getName());
+			fileReadWrite.replaceWordInAFile(pathOfTargetListCompTs, Variables.modelNameLowercase, table.getNameLowercase());
+			fileReadWrite.replaceWordInAFile(pathOfTargetListCompHtml, Variables.modelName, table.getName());
+			fileReadWrite.replaceWordInAFile(pathOfTargetListCompHtml, Variables.modelNameLowercase, table.getNameLowercase());
+			fileReadWrite.replaceWordInAFile(pathOfTargetModelTs, Variables.modelName, table.getName());
+			fileReadWrite.replaceWordInAFile(pathOfTargetModelTs, Variables.modelNameLowercase, table.getNameLowercase());
+			table.getFields().stream().forEach(field -> {
+				fileReadWrite.writeAfterLine(Paths.get(pathOfTargetModelTs), Variables.modelProperty, field.getFieldName() + "?: " + field.getType());
+			});
+			fileReadWrite.replaceWordInAFile(pathOfTargetServiceTs, Variables.modelName, table.getName());
+			fileReadWrite.replaceWordInAFile(pathOfTargetServiceTs, Variables.modelNameLowercase, table.getNameLowercase());
 			
 		});
 		// Delete source folders
-		fileReadWrite.deleteDirectoryRecursively(comFormSrcPath);
-		fileReadWrite.deleteDirectoryRecursively(comListSrcPath);
+		fileReadWrite.deleteDirectoryRecursively(srcComFormPath);
+		fileReadWrite.deleteDirectoryRecursively(srcComListPath);
+		fileReadWrite.deleteDirectoryRecursively(srcModelPath);
+		folderZipper.pack(Paths.get(appPath), Paths.get(appPath+ ".zip"));
+	}
+	
+	private void getThemeCss(App app,String appPath){
+		switch (app.getCssFramework()) {
+		case "material":
+			changeTheme(app, appPath);
+			break;
+		case "primeng-seed":
+			break;
+		default:
+			break;
+		}
+	}
+	
+	private String copyDirectory(App app, int folderIndex){
+		String source = Variables.pathSrc + app.getType() + "/"+ folderIndex+ "/" +app.getCssFramework()+ "-seed";
+		String target = Variables.pathTarget + app.getId();
+		if(Files.exists(Paths.get(target))){
+			fileReadWrite.deleteDirectoryRecursively(target);
+			fileReadWrite.createEmptyDirectory(target);
+		}
+		else{
+			fileReadWrite.createEmptyDirectory(target);
+		}
+		String appPath = target + "/" + app.getAppName();
+		fileReadWrite.directoryCopyAndRename(source, appPath);
+		return appPath;
+	}
+	
+	private void changeTheme(App app,String appPath){
+		String themeFilePath = appPath + Variables.themeFilePath;
+		System.out.println("Theme path "+ themeFilePath);
+		fileReadWrite.replaceWordInAFile(themeFilePath, Variables.primaryColor, app.getPrimaryColor());
+		fileReadWrite.replaceWordInAFile(themeFilePath, Variables.primaryColorhue, app.getPrimaryhue());
+		fileReadWrite.replaceWordInAFile(themeFilePath, Variables.accentColor, app.getSecondaryColor());
+		fileReadWrite.replaceWordInAFile(themeFilePath, Variables.accentColorhue, app.getSecondaryhue());
+	}
+	
+	private void changeRouteFile(String appPath, Table table){
+		Path routeFile = Paths.get(appPath + Variables.routePath);
+		fileReadWrite.writeAfterLine(routeFile, Variables.routeRoute, "{path: '" +table.getNameLowercase()+ "s', component: "+table.getName()+"sComponent},");
+		fileReadWrite.writeAfterLine(routeFile, Variables.routeImport, "import { "+ table.getName()+"sComponent } from './components/"+ table.getNameLowercase() +"s/"+ table.getNameLowercase()+"s.component'");
+		Path mainFile = Paths.get(appPath + Variables.mainRouteEntry);
+		fileReadWrite.writeAfterLine(mainFile, Variables.mainRouteAdd, "{title: '"+ table.getName()+ "s', route: '/"+ table.getNameLowercase() +"s', icon: 'dashboard'},");
+
+	}
+	
+	private void changeModuleFile(String appPath, Table table){
+		Path appFile = Paths.get(appPath + Variables.modulePath);
+		fileReadWrite.writeLinesAfterLine(appFile, Variables.moduleImport, new ArrayList<String>
+			(Arrays.asList("import { "+ table.getName()+"Component } from './components/"+ table.getNameLowercase() +"/"+ table.getNameLowercase()+".component'",
+						   "import { "+ table.getName()+"sComponent } from './components/"+ table.getNameLowercase() +"s/"+ table.getNameLowercase()+"s.component'",
+						   "import { "+ table.getName()+ "Service } from './shared/"+ table.getNameLowercase() + "/" + table.getNameLowercase() + ".service'"
+					))
+		);
+		fileReadWrite.writeLinesAfterLine(appFile, Variables.moduleDeclaration, new ArrayList<String>
+		(Arrays.asList(table.getName()+"Component", table.getName()+"sComponent,")));
+		fileReadWrite.writeAfterLine(appFile, Variables.moduleProvider, table.getName()+"Service,");
 	}
 }

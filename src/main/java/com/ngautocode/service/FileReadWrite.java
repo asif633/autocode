@@ -1,6 +1,7 @@
 package com.ngautocode.service;
 
 import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -10,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.stream.Stream;
 
 import org.springframework.stereotype.Service;
@@ -17,12 +19,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class FileReadWrite {
 
-	public void folderCopyAndRename(Path srcfolder, Path destfolder) {
-		try (Stream<Path> stream = Files.walk(srcfolder)) {
+	public void directoryCopyAndRename(String srcfolder, String destfolder) {
+		try (Stream<Path> stream = Files.walk(Paths.get(srcfolder))) {
 			stream.forEach(path -> {
-
 				try {
-					Files.copy(path, Paths.get(path.toString().replace(srcfolder.toString(), destfolder.toString())));
+					Files.copy(path, Paths.get(path.toString().replace(srcfolder, destfolder)));
 				} catch (Exception e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -30,16 +31,34 @@ public class FileReadWrite {
 
 			});
 
-		} catch (IOException e1) {
+		} 
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch (IOException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 	}
 	
-	public void deleteDirectoryRecursively(Path start) {
+	public void createEmptyDirectory(String path){
+		try {
+			Files.createDirectory(Paths.get(path));
+		}
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	public void deleteDirectoryRecursively(String start) {
 
 		try {
-			Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
+			Files.walkFileTree(Paths.get(start), new SimpleFileVisitor<Path>() {
 				@Override
 				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 					Files.delete(file);
@@ -57,20 +76,29 @@ public class FileReadWrite {
 					}
 				}
 			});
-		} catch (IOException e) {
+		} 
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
-	public void replaceWordInAFile(Path filepath, String sourceWord, String replaceWord) {
+	public void replaceWordInAFile(String file, String sourceWord, String replaceWord) {
 		Charset charset = StandardCharsets.UTF_8;
 		String content = "";
+		Path filepath = Paths.get(file);
 		try {
 			content = new String(Files.readAllBytes(filepath), charset);
 			content = content.replaceAll(sourceWord, replaceWord);
 			Files.write(filepath, content.getBytes(charset));
-		} catch (IOException e) {
+		}
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -84,7 +112,11 @@ public class FileReadWrite {
 			bufferedWriter = Files.newBufferedWriter(file, charset);
 			bufferedWriter.write("\n"+line+"\n");
 
-		}catch(IOException e){
+		}
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch(IOException e){
 			e.printStackTrace();
 		}finally{
 			try{
@@ -111,7 +143,11 @@ public class FileReadWrite {
 //		        .filter(line -> line.contains("print"))
 //		        .map(String::trim)
 //		        .forEach(System.out::println);
-		} catch (IOException e) {
+		}
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -120,10 +156,61 @@ public class FileReadWrite {
 	public void writeLine(BufferedWriter bufferedWriter, String line){
 		try {
 			bufferedWriter.write("\n"+line+"\n");
-		} catch (IOException e) {
+		}
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
+	
+	public void writeAfterLine(Path path, String needle, String extraLine){	
+		List<String> lines;
+		try {
+			lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+			int needlePosition =0;
+			for(String line: lines){
+				if(line.contains(needle)){
+					needlePosition = lines.indexOf(line);
+				}
+			}
+			lines.add(needlePosition, extraLine);
+			Files.write(path, lines, StandardCharsets.UTF_8);
+		} 
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void writeLinesAfterLine(Path path, String needle, List<String> extraLine){	
+		List<String> lines;
+		try {
+			lines = Files.readAllLines(path, StandardCharsets.UTF_8);
+			int needlePosition =0;
+			for(String line: lines){
+				if(line.contains(needle)){
+					needlePosition = lines.indexOf(line);
+				}
+			}
+			for(String line: extraLine){
+				lines.add(needlePosition, line);
+			}
+			Files.write(path, lines, StandardCharsets.UTF_8);
+		}
+		catch(FileNotFoundException fn){
+			fn.printStackTrace();
+		}
+		catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
 
 }
